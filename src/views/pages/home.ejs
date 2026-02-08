@@ -1,0 +1,117 @@
+<section class="hero">
+  <h1>Shorten your URLs</h1>
+  <p>Paste a long URL and get a short, trackable link with analytics.</p>
+
+  <form id="shorten-form" class="shorten-form">
+    <input
+      type="url"
+      id="url-input"
+      name="url"
+      placeholder="https://example.com/your-very-long-url-here"
+      required
+      autocomplete="off"
+    />
+    <button type="submit" id="submit-btn">Shrink it!</button>
+  </form>
+
+  <div id="result" class="result" style="display:none;">
+    <p>Your short URL:</p>
+    <div class="result-row">
+      <a id="short-url" href="#" target="_blank" class="short-link"></a>
+      <button id="copy-btn" class="copy-btn">Copy</button>
+    </div>
+    <a id="stats-link" href="#" class="stats-link">View Analytics</a>
+  </div>
+
+  <div id="error" class="error-msg" style="display:none;"></div>
+</section>
+
+<section class="recent">
+  <h2>Recently Shortened</h2>
+  <div id="recent-list" class="recent-list">
+    <p class="loading">Loading...</p>
+  </div>
+</section>
+
+<script>
+  const form = document.getElementById('shorten-form');
+  const urlInput = document.getElementById('url-input');
+  const resultDiv = document.getElementById('result');
+  const errorDiv = document.getElementById('error');
+  const shortUrlEl = document.getElementById('short-url');
+  const statsLink = document.getElementById('stats-link');
+  const copyBtn = document.getElementById('copy-btn');
+  const submitBtn = document.getElementById('submit-btn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    resultDiv.style.display = 'none';
+    errorDiv.style.display = 'none';
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Shrinking...';
+
+    try {
+      const res = await fetch('/api/urls', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: urlInput.value }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error?.message || 'Something went wrong');
+      }
+
+      shortUrlEl.href = data.shortUrl;
+      shortUrlEl.textContent = data.shortUrl;
+      statsLink.href = '/dashboard/' + data.shortCode;
+      resultDiv.style.display = 'block';
+      urlInput.value = '';
+      loadRecent();
+    } catch (err) {
+      errorDiv.textContent = err.message;
+      errorDiv.style.display = 'block';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Shrink it!';
+    }
+  });
+
+  copyBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(shortUrlEl.textContent);
+    copyBtn.textContent = 'Copied!';
+    setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+  });
+
+  const BASE_URL = '<%= baseUrl %>';
+
+  async function loadRecent() {
+    const list = document.getElementById('recent-list');
+    try {
+      const res = await fetch('/api/urls');
+      const urls = await res.json();
+
+      if (urls.length === 0) {
+        list.innerHTML = '<p class="empty">No URLs shortened yet. Be the first!</p>';
+        return;
+      }
+
+      list.innerHTML = urls.map(u => `
+        <div class="recent-item">
+          <a href="${BASE_URL}/${u.shortCode}" target="_blank" class="short-link">
+            ${BASE_URL}/${u.shortCode}
+          </a>
+          <span class="original-url" title="${u.originalUrl}">
+            ${u.originalUrl.length > 60 ? u.originalUrl.substring(0, 60) + '...' : u.originalUrl}
+          </span>
+          <a href="/dashboard/${u.shortCode}" class="stats-btn">Stats</a>
+        </div>
+      `).join('');
+    } catch {
+      list.innerHTML = '<p class="empty">Failed to load recent URLs</p>';
+    }
+  }
+
+  loadRecent();
+</script>

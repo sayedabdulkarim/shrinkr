@@ -1,0 +1,160 @@
+<section class="dashboard">
+  <div class="dash-header">
+    <h1>Analytics for /<%= shortCode %></h1>
+    <p class="original-url">
+      Destination: <a href="<%= stats.url.originalUrl %>" target="_blank"><%= stats.url.originalUrl %></a>
+    </p>
+    <p class="short-url">
+      Short URL: <a href="<%= baseUrl %>/<%= shortCode %>" target="_blank"><%= baseUrl %>/<%= shortCode %></a>
+    </p>
+  </div>
+
+  <div class="stats-overview">
+    <div class="stat-card">
+      <h3>Total Clicks</h3>
+      <span class="stat-number"><%= stats.totalClicks %></span>
+    </div>
+    <div class="stat-card">
+      <h3>Created</h3>
+      <span class="stat-date"><%= new Date(stats.url.createdAt).toLocaleDateString() %></span>
+    </div>
+  </div>
+
+  <% if (stats.totalClicks > 0) { %>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>Clicks Over Time (Last 30 Days)</h3>
+        <canvas id="clicksChart"></canvas>
+      </div>
+
+      <div class="chart-card">
+        <h3>Top Referrers</h3>
+        <canvas id="referrersChart"></canvas>
+      </div>
+
+      <div class="chart-card">
+        <h3>Countries</h3>
+        <canvas id="countriesChart"></canvas>
+      </div>
+
+      <div class="chart-card">
+        <h3>Browsers</h3>
+        <canvas id="browsersChart"></canvas>
+      </div>
+
+      <div class="chart-card">
+        <h3>Operating Systems</h3>
+        <canvas id="osChart"></canvas>
+      </div>
+
+      <div class="chart-card">
+        <h3>Device Types</h3>
+        <canvas id="devicesChart"></canvas>
+      </div>
+    </div>
+  <% } else { %>
+    <div class="no-data">
+      <p>No clicks yet. Share your short URL to start tracking analytics!</p>
+    </div>
+  <% } %>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+  const stats = <%- JSON.stringify(stats) %>;
+
+  if (stats.totalClicks > 0) {
+    const colors = [
+      '#6366f1', '#8b5cf6', '#a78bfa', '#c4b5fd',
+      '#818cf8', '#6d28d9', '#4f46e5', '#4338ca',
+      '#3730a3', '#312e81'
+    ];
+
+    // Clicks over time - Line chart
+    new Chart(document.getElementById('clicksChart'), {
+      type: 'line',
+      data: {
+        labels: stats.clicksOverTime.map(d => d.date),
+        datasets: [{
+          label: 'Clicks',
+          data: stats.clicksOverTime.map(d => d.count),
+          borderColor: '#6366f1',
+          backgroundColor: 'rgba(99, 102, 241, 0.1)',
+          fill: true,
+          tension: 0.3,
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      }
+    });
+
+    // Referrers - Horizontal bar
+    new Chart(document.getElementById('referrersChart'), {
+      type: 'bar',
+      data: {
+        labels: stats.referrers.map(r => r.referrer || 'Direct'),
+        datasets: [{
+          label: 'Clicks',
+          data: stats.referrers.map(r => r.count),
+          backgroundColor: colors,
+        }]
+      },
+      options: { responsive: true, indexAxis: 'y' }
+    });
+
+    // Countries - Bar
+    new Chart(document.getElementById('countriesChart'), {
+      type: 'bar',
+      data: {
+        labels: stats.countries.map(c => c.country),
+        datasets: [{
+          label: 'Clicks',
+          data: stats.countries.map(c => c.count),
+          backgroundColor: colors,
+        }]
+      },
+      options: { responsive: true }
+    });
+
+    // Browsers - Donut
+    new Chart(document.getElementById('browsersChart'), {
+      type: 'doughnut',
+      data: {
+        labels: stats.browsers.map(b => b.browser),
+        datasets: [{
+          data: stats.browsers.map(b => b.count),
+          backgroundColor: colors,
+        }]
+      },
+      options: { responsive: true }
+    });
+
+    // OS - Donut
+    new Chart(document.getElementById('osChart'), {
+      type: 'doughnut',
+      data: {
+        labels: stats.os.map(o => o.os),
+        datasets: [{
+          data: stats.os.map(o => o.count),
+          backgroundColor: colors,
+        }]
+      },
+      options: { responsive: true }
+    });
+
+    // Devices - Donut
+    new Chart(document.getElementById('devicesChart'), {
+      type: 'doughnut',
+      data: {
+        labels: stats.devices.map(d => d.deviceType),
+        datasets: [{
+          data: stats.devices.map(d => d.count),
+          backgroundColor: colors,
+        }]
+      },
+      options: { responsive: true }
+    });
+  }
+</script>
