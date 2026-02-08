@@ -1,5 +1,4 @@
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import Fastify from 'fastify';
 import fastifyStatic from '@fastify/static';
 import fastifyView from '@fastify/view';
@@ -13,7 +12,8 @@ import { urlRoutes } from './routes/url.js';
 import { redirectRoutes } from './routes/redirect.js';
 import { analyticsRoutes } from './routes/analytics.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Use project root so paths work in both dev (tsx) and prod (dist/app.js)
+const ROOT = process.cwd();
 
 // Auto-create tables if they don't exist
 db.run(sql`CREATE TABLE IF NOT EXISTS urls (
@@ -46,14 +46,14 @@ const fastify = Fastify({
 
 // Static files
 await fastify.register(fastifyStatic, {
-  root: path.join(__dirname, '..', 'public'),
+  root: path.join(ROOT, 'public'),
   prefix: '/',
 });
 
 // View engine (EJS)
 await fastify.register(fastifyView, {
   engine: { ejs },
-  root: path.join(__dirname, 'views'),
+  root: path.join(ROOT, 'src', 'views'),
   layout: 'layouts/main.ejs',
   defaultContext: {
     baseUrl: env.baseUrl,
